@@ -1,15 +1,11 @@
-using System.Threading.Tasks;
 using WebApplication4.DTO;
 
-namespace WebApplication4.Services
-{
-    /// <summary>
-    /// Сервис чтения записей о резервах (фактах бизнес-операций).
-    /// </summary>
-    public interface IStockReservationService
-    {
-        Task<PagedResult<StockReservationDTO>> GetPagedAsync(int page, int pageSize);
+namespace WebApplication4.Services;
 
-        Task<StockReservationDTO?> GetByIdAsync(int id);
-    }
+public interface IStockReservationService
+{
+    Task<(List<StockReservationDTO> Items, int TotalCount)> GetAllAsync(int page, int pageSize, CancellationToken ct);
+    Task<StockReservationDTO?> GetByIdAsync(int id, CancellationToken ct);
+    Task<StockReservationDTO> ReserveAsync(CreateStockReservationDTO dto, CancellationToken ct);
+    Task<StockReservationDTO?> ReleaseAsync(int id, CancellationToken ct);
 }

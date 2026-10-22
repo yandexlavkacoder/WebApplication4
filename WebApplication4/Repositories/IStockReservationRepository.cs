@@ -1,13 +1,7 @@
-using System.Threading.Tasks;
-using WebApplication4;
+namespace WebApplication4.Repositories;
 
-namespace WebApplication4.Repositories
+public interface IStockReservationRepository : IRepository<StockReservation>
 {
-    public interface IStockReservationRepository : IRepository<StockReservation>
-    {
-        /// <summary>
-        /// Активный резерв пользователя по товару (ReleasedAt == null).
-        /// </summary>
-        Task<StockReservation?> GetActiveByUserAndProductAsync(int userId, int productId);
-    }
+    Task<StockReservation?> GetActiveAsync(int id, CancellationToken ct);
+    Task<bool> HasActiveAsync(int userId, int productId, CancellationToken ct);
 }

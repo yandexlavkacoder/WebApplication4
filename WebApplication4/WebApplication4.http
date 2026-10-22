@@ -1,6 +1,20 @@
-@WebApplication4_HostAddress = http://localhost:5036
+@host = http://localhost:5036
 
-GET {{WebApplication4_HostAddress}}/weatherforecast/
-Accept: application/json
+GET {{host}}/api/products?page=1&pageSize=5
+
+###
+
+POST {{host}}/api/stockreservations
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "productId": 1,
+  "quantity": 2
+}
+
+###
+
+POST {{host}}/api/stockreservations/1/release
 
 ###

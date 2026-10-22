@@ -1,9 +1,7 @@
-using System.Threading.Tasks;
 using WebApplication4.DTO;
 
-namespace WebApplication4.Services
+namespace WebApplication4.Services;
+
+public interface IOrderService : IService<OrderDTO, CreateOrderDTO, UpdateOrderDTO, PatchOrderDTO>
 {
-    public interface IOrderService : IService<OrderDTO, CreateOrderDTO, UpdateOrderDTO, PatchOrderDTO>
-    {
-    }
 }

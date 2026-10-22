@@ -1,32 +1,22 @@
-using System;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using WebApplication4;
 
-namespace WebApplication4.Repositories
+namespace WebApplication4.Repositories;
+
+public class StockReservationRepository : Repository<StockReservation>, IStockReservationRepository
 {
-    public class StockReservationRepository : Repository<StockReservation>, IStockReservationRepository
+    public StockReservationRepository(ShopDbContext context) : base(context)
     {
-        public StockReservationRepository(ShopDbContext context) : base(context)
-        {
-        }
-
-        public override Task<StockReservation?> GetByIdAsync(int id, params Expression<Func<StockReservation, object>>[] includes)
-        {
-            if (includes.Length == 0)
-                return base.GetByIdAsync(id, r => r.User, r => r.Product);
-            return base.GetByIdAsync(id, includes);
-        }
-
-        public async Task<StockReservation?> GetActiveByUserAndProductAsync(int userId, int productId)
-        {
-            return await Set
-                .Include(r => r.User)
-                .Include(r => r.Product)
-                .FirstOrDefaultAsync(r => r.UserId == userId
-                    && r.ProductId == productId
-                    && r.ReleasedAt == null);
-        }
     }
+
+    protected override IQueryable<StockReservation> Query() =>
+        Context.StockReservations
+            .Include(r => r.User).ThenInclude(u => u.Role)
+            .Include(r => r.Product).ThenInclude(p => p.Category);
+
+    public async Task<StockReservation?> GetActiveAsync(int id, CancellationToken ct) =>
+        await Query().FirstOrDefaultAsync(r => r.StockReservationId == id && r.ReleasedAt == null, ct);
+
+    public async Task<bool> HasActiveAsync(int userId, int productId, CancellationToken ct) =>
+        await Context.StockReservations.AnyAsync(
+            r => r.UserId == userId && r.ProductId == productId && r.ReleasedAt == null, ct);
 }

@@ -1,20 +1,15 @@
-using System;
-using System.Linq.Expressions;
-using WebApplication4;
+using Microsoft.EntityFrameworkCore;
 
-namespace WebApplication4.Repositories
+namespace WebApplication4.Repositories;
+
+public class CartRepository : Repository<Cart>, ICartRepository
 {
-    public class CartRepository : Repository<Cart>, ICartRepository
+    public CartRepository(ShopDbContext context) : base(context)
     {
-        public CartRepository(ShopDbContext context) : base(context)
-        {
-        }
-
-        public override Task<Cart?> GetByIdAsync(int id, params Expression<Func<Cart, object>>[] includes)
-        {
-            if (includes.Length == 0)
-                return base.GetByIdAsync(id, c => c.User, c => c.CartItems);
-            return base.GetByIdAsync(id, includes);
-        }
     }
+
+    protected override IQueryable<Cart> Query() =>
+        Context.Carts
+            .Include(c => c.User).ThenInclude(u => u.Role)
+            .Include(c => c.CartItems).ThenInclude(i => i.Product).ThenInclude(p => p.Category);
 }

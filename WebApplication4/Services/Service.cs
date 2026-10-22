@@ -1,94 +1,83 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using AutoMapper;
-using WebApplication4.DTO;
 using WebApplication4.Repositories;
 
-namespace WebApplication4.Services
+namespace WebApplication4.Services;
+
+public abstract class Service<TEntity, TDto, TCreateDto, TUpdateDto, TPatchDto>
+    : IService<TDto, TCreateDto, TUpdateDto, TPatchDto>
+    where TEntity : class
+    where TDto : class
 {
-    /// <summary>
-    /// Базовый CRUD-сервис: бизнес-логика + AutoMapper, без DbContext и без HTTP-типов.
-    /// Конкретные сервисы задают сущность, набор DTO и правила отображения (MappingProfile).
-    /// </summary>
-    public abstract class Service<TEntity, TDto, TCreateDto, TUpdateDto, TPatchDto>
-        : IService<TDto, TCreateDto, TUpdateDto, TPatchDto>
-        where TEntity : class
+    protected readonly IRepository<TEntity> Repository;
+    protected readonly IMapper Mapper;
+
+    protected Service(IRepository<TEntity> repository, IMapper mapper)
     {
-        protected readonly IRepository<TEntity> Repository;
-        protected readonly IMapper Mapper;
-
-        protected Service(IRepository<TEntity> repository, IMapper mapper)
-        {
-            Repository = repository;
-            Mapper = mapper;
-        }
-
-        public virtual async Task<PagedResult<TDto>> GetPagedAsync(int page, int pageSize)
-        {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-
-            var totalCount = await Repository.CountAsync();
-            var items = await Repository.GetAllAsync(
-                skip: (page - 1) * pageSize,
-                take: pageSize);
-
-            return new PagedResult<TDto>
-            {
-                Items = Mapper.Map<IReadOnlyList<TDto>>(items),
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
-            };
-        }
-
-        public virtual async Task<TDto?> GetByIdAsync(int id)
-        {
-            var entity = await Repository.GetByIdAsync(id);
-            return entity is null ? default : Mapper.Map<TDto>(entity);
-        }
-
-        public virtual async Task<TDto> CreateAsync(TCreateDto dto)
-        {
-            var entity = Mapper.Map<TEntity>(dto);
-            await Repository.AddAsync(entity);
-            await Repository.SaveChangesAsync();
-            return Mapper.Map<TDto>(entity);
-        }
-
-        public virtual async Task<TDto?> UpdateAsync(int id, TUpdateDto dto)
-        {
-            var entity = await Repository.GetByIdAsync(id);
-            if (entity is null) return default;
-
-            Mapper.Map(dto, entity);
-            Repository.Update(entity);
-            await Repository.SaveChangesAsync();
-            return Mapper.Map<TDto>(entity);
-        }
-
-        public virtual async Task<TDto?> PatchAsync(int id, TPatchDto dto)
-        {
-            var entity = await Repository.GetByIdAsync(id);
-            if (entity is null) return default;
-
-            Mapper.Map(dto, entity);
-            Repository.Update(entity);
-            await Repository.SaveChangesAsync();
-            return Mapper.Map<TDto>(entity);
-        }
-
-        public virtual async Task<bool> DeleteAsync(int id)
-        {
-            var entity = await Repository.GetByIdAsync(id);
-            if (entity is null) return false;
-
-            Repository.Remove(entity);
-            await Repository.SaveChangesAsync();
-            return true;
-        }
+        Repository = repository;
+        Mapper = mapper;
     }
+
+    public async Task<(List<TDto> Items, int TotalCount)> GetAllAsync(int page, int pageSize, CancellationToken ct)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+
+        var items = await Repository.GetAllAsync(page, pageSize, ct);
+        var total = await Repository.CountAsync(ct);
+        return (Mapper.Map<List<TDto>>(items), total);
+    }
+
+    public async Task<TDto?> GetByIdAsync(int id, CancellationToken ct)
+    {
+        var entity = await Repository.GetByIdAsync(id, ct);
+        return entity is null ? null : Mapper.Map<TDto>(entity);
+    }
+
+    public async Task<TDto> CreateAsync(TCreateDto dto, CancellationToken ct)
+    {
+        var entity = Mapper.Map<TEntity>(dto);
+        await ValidateAsync(entity, ct);
+
+        await Repository.AddAsync(entity, ct);
+        await Repository.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(Repository.GetId(entity), ct)
+            ?? throw new InvalidOperationException("Не удалось загрузить только что созданную запись.");
+    }
+
+    public async Task<TDto?> UpdateAsync(int id, TUpdateDto dto, CancellationToken ct)
+    {
+        var entity = await Repository.GetByIdAsync(id, ct);
+        if (entity is null) return null;
+
+        Mapper.Map(dto, entity);
+        await ValidateAsync(entity, ct);
+        await Repository.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(id, ct);
+    }
+
+    public async Task<TDto?> PatchAsync(int id, TPatchDto dto, CancellationToken ct)
+    {
+        var entity = await Repository.GetByIdAsync(id, ct);
+        if (entity is null) return null;
+
+        Mapper.Map(dto, entity);
+        await ValidateAsync(entity, ct);
+        await Repository.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(id, ct);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct)
+    {
+        var entity = await Repository.GetByIdAsync(id, ct);
+        if (entity is null) return false;
+
+        Repository.Remove(entity);
+        await Repository.SaveChangesAsync(ct);
+        return true;
+    }
+
+    protected virtual Task ValidateAsync(TEntity entity, CancellationToken ct) => Task.CompletedTask;
 }

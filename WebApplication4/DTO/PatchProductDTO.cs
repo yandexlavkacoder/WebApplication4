@@ -1,16 +1,12 @@
-﻿using System;
+namespace WebApplication4.DTO;
 
-namespace WebApplication4.DTO
+public class PatchProductDTO
 {
-    public class PatchProductDTO
-    {
-        public string? ProductName { get; set; }
-        public string? Description { get; set; }
-        public decimal? Price { get; set; }
-        public int? StockQuantity { get; set; }
-        public int? CategoryId { get; set; }
-        public bool? IsActive { get; set; }
-        public DateTime? CreatedAt { get; set; }
-        public string? ImagePath { get; set; }
-    }
+    public string? ProductName { get; set; }
+    public string? Description { get; set; }
+    public decimal? Price { get; set; }
+    public int? StockQuantity { get; set; }
+    public int? CategoryId { get; set; }
+    public bool? IsActive { get; set; }
+    public string? ImagePath { get; set; }
 }

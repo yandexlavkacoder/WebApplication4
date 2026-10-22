@@ -1,96 +1,63 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
-namespace WebApplication4.Repositories
+namespace WebApplication4.Repositories;
+
+public class Repository<T> : IRepository<T> where T : class
 {
-    /// <summary>
-    /// Базовый репозиторий поверх DbContext. Все репозитории конкретных сущностей
-    /// наследуются от него. SaveChangesAsync здесь единственный — поэтому бизнес-операция,
-    /// меняющая несколько сущностей через разные репозитории одного scope, сохраняется атомарно.
-    /// </summary>
-    public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
+    protected readonly ShopDbContext Context;
+    private readonly string _keyName;
+
+    public Repository(ShopDbContext context)
     {
-        protected readonly ShopDbContext Context;
-        protected readonly DbSet<TEntity> Set;
+        Context = context;
+        _keyName = context.Model.FindEntityType(typeof(T))!.FindPrimaryKey()!.Properties[0].Name;
+    }
 
-        public Repository(ShopDbContext context)
+    protected virtual IQueryable<T> Query() => Context.Set<T>();
+
+    public async Task<List<T>> GetAllAsync(int page, int pageSize, CancellationToken ct)
+    {
+        var key = _keyName;
+        return await Query()
+            .OrderBy(e => EF.Property<int>(e, key))
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> CountAsync(CancellationToken ct) =>
+        await Context.Set<T>().CountAsync(ct);
+
+    public async Task<T?> GetByIdAsync(int id, CancellationToken ct)
+    {
+        var key = _keyName;
+        return await Query().FirstOrDefaultAsync(e => EF.Property<int>(e, key) == id, ct);
+    }
+
+    public async Task<bool> ExistsAsync(int id, CancellationToken ct)
+    {
+        var key = _keyName;
+        return await Context.Set<T>().AnyAsync(e => EF.Property<int>(e, key) == id, ct);
+    }
+
+    public int GetId(T entity) =>
+        (int)Context.Entry(entity).Property(_keyName).CurrentValue!;
+
+    public async Task AddAsync(T entity, CancellationToken ct) =>
+        await Context.Set<T>().AddAsync(entity, ct);
+
+    public void Remove(T entity) => Context.Set<T>().Remove(entity);
+
+    public async Task SaveChangesAsync(CancellationToken ct)
+    {
+        try
         {
-            Context = context;
-            Set = context.Set<TEntity>();
+            await Context.SaveChangesAsync(ct);
         }
-
-        public virtual async Task<TEntity?> GetByIdAsync(int id, params Expression<Func<TEntity, object>>[] includes)
+        catch (Exception ex) when (ex is DbUpdateException or InvalidOperationException)
         {
-            IQueryable<TEntity> query = Set;
-            foreach (var include in includes)
-                query = query.Include(include);
-
-            // Единая конвенция: PK сущности называется <Имя>Id.
-            var parameter = Expression.Parameter(typeof(TEntity), "e");
-            var property = Expression.Property(parameter, typeof(TEntity).Name + "Id");
-            var idEquals = Expression.Equal(property, Expression.Constant(id));
-            var predicate = Expression.Lambda<Func<TEntity, bool>>(idEquals, parameter);
-
-            return await query.FirstOrDefaultAsync(predicate);
-        }
-
-        public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(
-            Expression<Func<TEntity, bool>>? filter = null,
-            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
-            int? skip = null,
-            int? take = null,
-            params Expression<Func<TEntity, object>>[] includes)
-        {
-            IQueryable<TEntity> query = Set;
-
-            foreach (var include in includes)
-                query = query.Include(include);
-
-            if (filter is not null)
-                query = query.Where(filter);
-
-            if (orderBy is not null)
-                query = orderBy(query);
-
-            if (skip.HasValue)
-                query = query.Skip(skip.Value);
-
-            if (take.HasValue)
-                query = query.Take(take.Value);
-
-            return await query.ToListAsync();
-        }
-
-        public virtual async Task<int> CountAsync(Expression<Func<TEntity, bool>>? filter = null)
-        {
-            IQueryable<TEntity> query = Set;
-            if (filter is not null)
-                query = query.Where(filter);
-            return await query.CountAsync();
-        }
-
-        public virtual async Task AddAsync(TEntity entity)
-        {
-            await Set.AddAsync(entity);
-        }
-
-        public virtual void Update(TEntity entity)
-        {
-            Set.Update(entity);
-        }
-
-        public virtual void Remove(TEntity entity)
-        {
-            Set.Remove(entity);
-        }
-
-        public Task SaveChangesAsync()
-        {
-            return Context.SaveChangesAsync();
+            throw new InvalidOperationException(
+                "Не удалось сохранить изменения: запись связана с другими данными или нарушает уникальность.");
         }
     }
 }

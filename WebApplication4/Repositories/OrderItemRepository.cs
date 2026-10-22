@@ -1,20 +1,14 @@
-using System;
-using System.Linq.Expressions;
-using WebApplication4;
+using Microsoft.EntityFrameworkCore;
 
-namespace WebApplication4.Repositories
+namespace WebApplication4.Repositories;
+
+public class OrderItemRepository : Repository<OrderItem>, IOrderItemRepository
 {
-    public class OrderItemRepository : Repository<OrderItem>, IOrderItemRepository
+    public OrderItemRepository(ShopDbContext context) : base(context)
     {
-        public OrderItemRepository(ShopDbContext context) : base(context)
-        {
-        }
-
-        public override Task<OrderItem?> GetByIdAsync(int id, params Expression<Func<OrderItem, object>>[] includes)
-        {
-            if (includes.Length == 0)
-                return base.GetByIdAsync(id, oi => oi.Order, oi => oi.Product);
-            return base.GetByIdAsync(id, includes);
-        }
     }
+
+    protected override IQueryable<OrderItem> Query() =>
+        Context.OrderItems
+            .Include(i => i.Product).ThenInclude(p => p.Category);
 }

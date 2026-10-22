@@ -2,60 +2,92 @@ using Microsoft.AspNetCore.Mvc;
 using WebApplication4.DTO;
 using WebApplication4.Services;
 
-namespace WebApplication4.Controllers
+namespace WebApplication4.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class UsersController : ControllerBase
+    private readonly IUserService _service;
+
+    public UsersController(IUserService service)
     {
-        private readonly IUserService _service;
+        _service = service;
+    }
 
-        public UsersController(IUserService service)
-        {
-            _service = service;
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    {
+        var (items, total) = await _service.GetAllAsync(page, pageSize, cancellationToken);
+        Response.Headers["X-Total-Count"] = total.ToString();
+        return Ok(items);
+    }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
-        {
-            var result = await _service.GetPagedAsync(page, pageSize);
-            Response.Headers["X-Total-Count"] = result.TotalCount.ToString();
-            return Ok(result.Items);
-        }
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+    {
+        var dto = await _service.GetByIdAsync(id, cancellationToken);
+        if (dto is null) return NotFound();
+        return Ok(dto);
+    }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateUserDTO dto, CancellationToken cancellationToken)
+    {
+        try
         {
-            var dto = await _service.GetByIdAsync(id);
-            return dto is null ? NotFound() : Ok(dto);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Create(CreateUserDTO dto)
-        {
-            var created = await _service.CreateAsync(dto);
+            var created = await _service.CreateAsync(dto, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.UserId }, created);
         }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, UpdateUserDTO dto)
+        catch (InvalidOperationException ex)
         {
-            var updated = await _service.UpdateAsync(id, dto);
-            return updated is null ? NotFound() : Ok(updated);
+            return BadRequest(new { error = ex.Message });
         }
+    }
 
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> Patch(int id, PatchUserDTO dto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, UpdateUserDTO dto, CancellationToken cancellationToken)
+    {
+        try
         {
-            var updated = await _service.PatchAsync(id, dto);
-            return updated is null ? NotFound() : Ok(updated);
+            var updated = await _service.UpdateAsync(id, dto, cancellationToken);
+            if (updated is null) return NotFound();
+            return Ok(updated);
         }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        catch (InvalidOperationException ex)
         {
-            var deleted = await _service.DeleteAsync(id);
-            return deleted ? NoContent() : NotFound();
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id}")]
+    public async Task<IActionResult> Patch(int id, PatchUserDTO dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updated = await _service.PatchAsync(id, dto, cancellationToken);
+            if (updated is null) return NotFound();
+            return Ok(updated);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await _service.DeleteAsync(id, cancellationToken);
+            if (!deleted) return NotFound();
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
     }
 }

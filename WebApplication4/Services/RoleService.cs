@@ -1,17 +1,13 @@
 using AutoMapper;
-using WebApplication4;
 using WebApplication4.DTO;
 using WebApplication4.Repositories;
 
-namespace WebApplication4.Services
+namespace WebApplication4.Services;
+
+public class RoleService : Service<Role, RoleDTO, CreateRoleDTO, UpdateRoleDTO, PatchRoleDTO>, IRoleService
 {
-    public class RoleService
-        : Service<Role, RoleDTO, CreateRoleDTO, UpdateRoleDTO, PatchRoleDTO>,
-          IRoleService
+    public RoleService(IRoleRepository repository, IMapper mapper)
+        : base(repository, mapper)
     {
-        public RoleService(IRoleRepository repository, IMapper mapper)
-            : base(repository, mapper)
-        {
-        }
     }
 }

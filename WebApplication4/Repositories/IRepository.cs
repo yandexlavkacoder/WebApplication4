@@ -1,40 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+namespace WebApplication4.Repositories;
 
-namespace WebApplication4.Repositories
+public interface IRepository<T> where T : class
 {
-    /// <summary>
-    /// Общий контракт репозитория для доступа к данным.
-    /// Контроллеры и сервисы не обращаются к DbContext напрямую — только через репозитории.
-    /// </summary>
-    public interface IRepository<TEntity> where TEntity : class
-    {
-        Task<TEntity?> GetByIdAsync(int id, params Expression<Func<TEntity, object>>[] includes);
-
-        Task<IReadOnlyList<TEntity>> GetAllAsync(
-            Expression<Func<TEntity, bool>>? filter = null,
-            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
-            int? skip = null,
-            int? take = null,
-            params Expression<Func<TEntity, object>>[] includes);
-
-        Task<int> CountAsync(Expression<Func<TEntity, bool>>? filter = null);
-
-        Task AddAsync(TEntity entity);
-
-        void Update(TEntity entity);
-
-        void Remove(TEntity entity);
-
-        /// <summary>
-        /// Единственная точка сохранения: все изменения, накопленные репозиториями
-        /// (в том числе в бизнес-операциях над несколькими сущностями),
-        /// записываются в БД одним вызовом SaveChangesAsync.
-        /// </summary>
-        Task SaveChangesAsync();
-    }
+    Task<List<T>> GetAllAsync(int page, int pageSize, CancellationToken ct);
+    Task<int> CountAsync(CancellationToken ct);
+    Task<T?> GetByIdAsync(int id, CancellationToken ct);
+    Task<bool> ExistsAsync(int id, CancellationToken ct);
+    int GetId(T entity);
+    Task AddAsync(T entity, CancellationToken ct);
+    void Remove(T entity);
+    Task SaveChangesAsync(CancellationToken ct);
 }

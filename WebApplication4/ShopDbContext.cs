@@ -1,41 +1,23 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApplication4;
 
-public partial class ShopDbContext : DbContext
+public class ShopDbContext : DbContext
 {
-    public ShopDbContext()
-    {
-    }
-
     public ShopDbContext(DbContextOptions<ShopDbContext> options)
         : base(options)
     {
     }
 
-    public virtual DbSet<Cart> Carts { get; set; }
-
-    public virtual DbSet<CartItem> CartItems { get; set; }
-
-    public virtual DbSet<Category> Categories { get; set; }
-
-    public virtual DbSet<Order> Orders { get; set; }
-
-    public virtual DbSet<OrderItem> OrderItems { get; set; }
-
-    public virtual DbSet<Product> Products { get; set; }
-
-    public virtual DbSet<Role> Roles { get; set; }
-
-    public virtual DbSet<StockReservation> StockReservations { get; set; }
-
-    public virtual DbSet<User> Users { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=DESKTOP-E3NGIJL\\SQLEXPRESS;Initial Catalog=ShopDB;Integrated Security=True;Trust Server Certificate=True");
+    public DbSet<Cart> Carts => Set<Cart>();
+    public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<StockReservation> StockReservations => Set<StockReservation>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -166,8 +148,6 @@ public partial class ShopDbContext : DbContext
 
             entity.Property(e => e.ReservedAt).HasDefaultValueSql("(getdate())");
 
-            entity.Property(e => e.Quantity);
-
             entity.HasOne(d => d.User).WithMany(p => p.StockReservations)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("FK_StockReservations_Users");
@@ -200,9 +180,5 @@ public partial class ShopDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Users_Roles");
         });
-
-        OnModelCreatingPartial(modelBuilder);
     }
-
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

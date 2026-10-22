@@ -1,12 +1,8 @@
-namespace WebApplication4.DTO
+namespace WebApplication4.DTO;
+
+public class RoleDTO
 {
-    /// <summary>
-    /// DTO чтения роли — со списком пользователей (один-ко-многим).
-    /// </summary>
-    public class RoleDTO
-    {
-        public int RoleId { get; set; }
-        public string RoleName { get; set; } = null!;
-        public string? Description { get; set; }
-    }
+    public int RoleId { get; set; }
+    public string RoleName { get; set; } = "";
+    public string? Description { get; set; }
 }

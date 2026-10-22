@@ -1,11 +1,6 @@
-﻿using System;
+namespace WebApplication4.DTO;
 
-namespace WebApplication4.DTO
+public class PatchCartDTO
 {
-    public class PatchCartDTO
-    {
-        public int? UserId { get; set; }
-        public DateTime? CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-    }
+    public int? UserId { get; set; }
 }

@@ -1,8 +1,7 @@
-﻿namespace WebApplication4.DTO
+namespace WebApplication4.DTO;
+
+public class PatchRoleDTO
 {
-    public class PatchRoleDTO
-    {
-        public string? RoleName { get; set; }
-        public string? Description { get; set; }
-    }
+    public string? RoleName { get; set; }
+    public string? Description { get; set; }
 }

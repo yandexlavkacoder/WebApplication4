@@ -1,24 +1,11 @@
-using System.Threading.Tasks;
-using WebApplication4.DTO;
+namespace WebApplication4.Services;
 
-namespace WebApplication4.Services
+public interface IService<TDto, TCreateDto, TUpdateDto, TPatchDto> where TDto : class
 {
-    /// <summary>
-    /// Общий контракт CRUD-сервиса. Возвращает DTO и результат-обёртку вместо HTTP-типов:
-    /// слой сервиса не зависит от ASP.NET Core.
-    /// </summary>
-    public interface IService<TDto, TCreateDto, TUpdateDto, TPatchDto>
-    {
-        Task<PagedResult<TDto>> GetPagedAsync(int page, int pageSize);
-
-        Task<TDto?> GetByIdAsync(int id);
-
-        Task<TDto> CreateAsync(TCreateDto dto);
-
-        Task<TDto?> UpdateAsync(int id, TUpdateDto dto);
-
-        Task<TDto?> PatchAsync(int id, TPatchDto dto);
-
-        Task<bool> DeleteAsync(int id);
-    }
+    Task<(List<TDto> Items, int TotalCount)> GetAllAsync(int page, int pageSize, CancellationToken ct);
+    Task<TDto?> GetByIdAsync(int id, CancellationToken ct);
+    Task<TDto> CreateAsync(TCreateDto dto, CancellationToken ct);
+    Task<TDto?> UpdateAsync(int id, TUpdateDto dto, CancellationToken ct);
+    Task<TDto?> PatchAsync(int id, TPatchDto dto, CancellationToken ct);
+    Task<bool> DeleteAsync(int id, CancellationToken ct);
 }

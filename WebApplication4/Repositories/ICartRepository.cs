@@ -1,8 +1,5 @@
-using WebApplication4;
+namespace WebApplication4.Repositories;
 
-namespace WebApplication4.Repositories
+public interface ICartRepository : IRepository<Cart>
 {
-    public interface ICartRepository : IRepository<Cart>
-    {
-    }
 }
