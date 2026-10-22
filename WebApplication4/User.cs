@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WebApplication4;
@@ -22,6 +22,8 @@ public partial class User
     public virtual Cart? Cart { get; set; }
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+    public virtual ICollection<StockReservation> StockReservations { get; set; } = new List<StockReservation>();
 
     public virtual Role Role { get; set; } = null!;
 }

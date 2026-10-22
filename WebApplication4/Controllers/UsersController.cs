@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication4.DTO;
+using WebApplication4.Services;
 
 namespace WebApplication4.Controllers
 {
@@ -7,106 +8,54 @@ namespace WebApplication4.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly ShopDbContext _context;
+        private readonly IUserService _service;
 
-        public UsersController(ShopDbContext context)
+        public UsersController(IUserService service)
         {
-            _context = context;
+            _service = service;
         }
 
-        private static UserDTO ToDto(User u) => new UserDTO
-        {
-            UserId = u.UserId,
-            Username = u.Username,
-            Email = u.Email,
-            CreatedAt = u.CreatedAt,
-            RoleId = u.RoleId,
-            IsActive = u.IsActive
-        };
-
         [HttpGet]
-        public IActionResult GetAll(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
         {
-            var items = _context.Users
-                .OrderBy(u => u.UserId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList()
-                .Select(ToDto)
-                .ToList();
-
-            return Ok(items);
+            var result = await _service.GetPagedAsync(page, pageSize);
+            Response.Headers["X-Total-Count"] = result.TotalCount.ToString();
+            return Ok(result.Items);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var u = _context.Users.FirstOrDefault(x => x.UserId == id);
-            if (u is null) return NotFound();
-            return Ok(ToDto(u));
+            var dto = await _service.GetByIdAsync(id);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpPost]
-        public IActionResult Create(CreateUserDTO dto)
+        public async Task<IActionResult> Create(CreateUserDTO dto)
         {
-            var u = new User
-            {
-                Username = dto.Username,
-                PasswordHash = dto.PasswordHash,
-                Email = dto.Email,
-                RoleId = dto.RoleId,
-                IsActive = dto.IsActive,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Users.Add(u);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetById), new { id = u.UserId }, ToDto(u));
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.UserId }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, UpdateUserDTO dto)
+        public async Task<IActionResult> Update(int id, UpdateUserDTO dto)
         {
-            var u = _context.Users.FirstOrDefault(x => x.UserId == id);
-            if (u is null) return NotFound();
-
-            u.Username = dto.Username;
-            u.Email = dto.Email;
-            u.CreatedAt = dto.CreatedAt;
-            u.RoleId = dto.RoleId;
-            u.IsActive = dto.IsActive;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.UpdateAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpPatch("{id}")]
-        public IActionResult Patch(int id, PatchUserDTO dto)
+        public async Task<IActionResult> Patch(int id, PatchUserDTO dto)
         {
-            var u = _context.Users.FirstOrDefault(x => x.UserId == id);
-            if (u is null) return NotFound();
-
-            if (dto.Username is not null) u.Username = dto.Username;
-            if (dto.PasswordHash is not null) u.PasswordHash = dto.PasswordHash;
-            if (dto.Email is not null) u.Email = dto.Email;
-            if (dto.CreatedAt is not null) u.CreatedAt = dto.CreatedAt.Value;
-            if (dto.RoleId is not null) u.RoleId = dto.RoleId.Value;
-            if (dto.IsActive is not null) u.IsActive = dto.IsActive.Value;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.PatchAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var u = _context.Users.FirstOrDefault(x => x.UserId == id);
-            if (u is null) return NotFound();
-
-            _context.Users.Remove(u);
-            _context.SaveChanges();
-            return NoContent();
+            var deleted = await _service.DeleteAsync(id);
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

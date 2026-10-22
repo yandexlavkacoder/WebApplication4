@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication4.DTO;
+using WebApplication4.Services;
 
 namespace WebApplication4.Controllers
 {
@@ -7,96 +8,54 @@ namespace WebApplication4.Controllers
     [ApiController]
     public class CartsController : ControllerBase
     {
-        private readonly ShopDbContext _context;
+        private readonly ICartService _service;
 
-        public CartsController(ShopDbContext context)
+        public CartsController(ICartService service)
         {
-            _context = context;
+            _service = service;
         }
 
-        private static CartDTO ToDto(Cart c) => new CartDTO
-        {
-            CartId = c.CartId,
-            UserId = c.UserId,
-            CreatedAt = c.CreatedAt,
-            UpdatedAt = c.UpdatedAt
-        };
-
         [HttpGet]
-        public IActionResult GetAll(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
         {
-            var items = _context.Carts
-                .OrderBy(c => c.CartId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList()
-                .Select(ToDto)
-                .ToList();
-
-            return Ok(items);
+            var result = await _service.GetPagedAsync(page, pageSize);
+            Response.Headers["X-Total-Count"] = result.TotalCount.ToString();
+            return Ok(result.Items);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var c = _context.Carts.FirstOrDefault(x => x.CartId == id);
-            if (c is null) return NotFound();
-            return Ok(ToDto(c));
+            var dto = await _service.GetByIdAsync(id);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpPost]
-        public IActionResult Create(CreateCartDTO dto)
+        public async Task<IActionResult> Create(CreateCartDTO dto)
         {
-            var c = new Cart
-            {
-                UserId = dto.UserId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            _context.Carts.Add(c);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetById), new { id = c.CartId }, ToDto(c));
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.CartId }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, UpdateCartDTO dto)
+        public async Task<IActionResult> Update(int id, UpdateCartDTO dto)
         {
-            var c = _context.Carts.FirstOrDefault(x => x.CartId == id);
-            if (c is null) return NotFound();
-
-            c.UserId = dto.UserId;
-            c.CreatedAt = dto.CreatedAt;
-            c.UpdatedAt = dto.UpdatedAt;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.UpdateAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpPatch("{id}")]
-        public IActionResult Patch(int id, PatchCartDTO dto)
+        public async Task<IActionResult> Patch(int id, PatchCartDTO dto)
         {
-            var c = _context.Carts.FirstOrDefault(x => x.CartId == id);
-            if (c is null) return NotFound();
-
-            if (dto.UserId is not null) c.UserId = dto.UserId.Value;
-            if (dto.CreatedAt is not null) c.CreatedAt = dto.CreatedAt.Value;
-            if (dto.UpdatedAt is not null) c.UpdatedAt = dto.UpdatedAt.Value;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.PatchAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var c = _context.Carts.FirstOrDefault(x => x.CartId == id);
-            if (c is null) return NotFound();
-
-            _context.Carts.Remove(c);
-            _context.SaveChanges();
-            return NoContent();
+            var deleted = await _service.DeleteAsync(id);
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

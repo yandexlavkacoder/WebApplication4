@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication4.DTO;
+using WebApplication4.Services;
 
 namespace WebApplication4.Controllers
 {
@@ -7,96 +8,54 @@ namespace WebApplication4.Controllers
     [ApiController]
     public class CategoriesController : ControllerBase
     {
-        private readonly ShopDbContext _context;
+        private readonly ICategoryService _service;
 
-        public CategoriesController(ShopDbContext context)
+        public CategoriesController(ICategoryService service)
         {
-            _context = context;
+            _service = service;
         }
 
-        private static CategoryDTO ToDto(Category c) => new CategoryDTO
-        {
-            CategoryId = c.CategoryId,
-            CategoryName = c.CategoryName,
-            Description = c.Description,
-            ParentCategoryId = c.ParentCategoryId
-        };
-
         [HttpGet]
-        public IActionResult GetAll(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
         {
-            var items = _context.Categories
-                .OrderBy(c => c.CategoryId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList()
-                .Select(ToDto)
-                .ToList();
-
-            return Ok(items);
+            var result = await _service.GetPagedAsync(page, pageSize);
+            Response.Headers["X-Total-Count"] = result.TotalCount.ToString();
+            return Ok(result.Items);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var c = _context.Categories.FirstOrDefault(x => x.CategoryId == id);
-            if (c is null) return NotFound();
-            return Ok(ToDto(c));
+            var dto = await _service.GetByIdAsync(id);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpPost]
-        public IActionResult Create(CreateCategoryDTO dto)
+        public async Task<IActionResult> Create(CreateCategoryDTO dto)
         {
-            var c = new Category
-            {
-                CategoryName = dto.CategoryName,
-                Description = dto.Description,
-                ParentCategoryId = dto.ParentCategoryId
-            };
-
-            _context.Categories.Add(c);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetById), new { id = c.CategoryId }, ToDto(c));
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.CategoryId }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, UpdateCategoryDTO dto)
+        public async Task<IActionResult> Update(int id, UpdateCategoryDTO dto)
         {
-            var c = _context.Categories.FirstOrDefault(x => x.CategoryId == id);
-            if (c is null) return NotFound();
-
-            c.CategoryName = dto.CategoryName;
-            c.Description = dto.Description;
-            c.ParentCategoryId = dto.ParentCategoryId;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.UpdateAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpPatch("{id}")]
-        public IActionResult Patch(int id, PatchCategoryDTO dto)
+        public async Task<IActionResult> Patch(int id, PatchCategoryDTO dto)
         {
-            var c = _context.Categories.FirstOrDefault(x => x.CategoryId == id);
-            if (c is null) return NotFound();
-
-            if (dto.CategoryName is not null) c.CategoryName = dto.CategoryName;
-            if (dto.Description is not null) c.Description = dto.Description;
-            if (dto.ParentCategoryId is not null) c.ParentCategoryId = dto.ParentCategoryId.Value;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.PatchAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var c = _context.Categories.FirstOrDefault(x => x.CategoryId == id);
-            if (c is null) return NotFound();
-
-            _context.Categories.Remove(c);
-            _context.SaveChanges();
-            return NoContent();
+            var deleted = await _service.DeleteAsync(id);
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

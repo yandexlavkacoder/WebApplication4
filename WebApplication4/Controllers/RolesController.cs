@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication4.DTO;
+using WebApplication4.Services;
 
 namespace WebApplication4.Controllers
 {
@@ -7,92 +8,54 @@ namespace WebApplication4.Controllers
     [ApiController]
     public class RolesController : ControllerBase
     {
-        private readonly ShopDbContext _context;
+        private readonly IRoleService _service;
 
-        public RolesController(ShopDbContext context)
+        public RolesController(IRoleService service)
         {
-            _context = context;
+            _service = service;
         }
 
-        private static RoleDTO ToDto(Role r) => new RoleDTO
-        {
-            RoleId = r.RoleId,
-            RoleName = r.RoleName,
-            Description = r.Description
-        };
-
         [HttpGet]
-        public IActionResult GetAll(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
         {
-            var items = _context.Roles
-                .OrderBy(r => r.RoleId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList()
-                .Select(ToDto)
-                .ToList();
-
-            return Ok(items);
+            var result = await _service.GetPagedAsync(page, pageSize);
+            Response.Headers["X-Total-Count"] = result.TotalCount.ToString();
+            return Ok(result.Items);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var r = _context.Roles.FirstOrDefault(x => x.RoleId == id);
-            if (r is null) return NotFound();
-            return Ok(ToDto(r));
+            var dto = await _service.GetByIdAsync(id);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpPost]
-        public IActionResult Create(CreateRoleDTO dto)
+        public async Task<IActionResult> Create(CreateRoleDTO dto)
         {
-            var r = new Role
-            {
-                RoleName = dto.RoleName,
-                Description = dto.Description
-            };
-
-            _context.Roles.Add(r);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetById), new { id = r.RoleId }, ToDto(r));
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.RoleId }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, UpdateRoleDTO dto)
+        public async Task<IActionResult> Update(int id, UpdateRoleDTO dto)
         {
-            var r = _context.Roles.FirstOrDefault(x => x.RoleId == id);
-            if (r is null) return NotFound();
-
-            r.RoleName = dto.RoleName;
-            r.Description = dto.Description;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.UpdateAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpPatch("{id}")]
-        public IActionResult Patch(int id, PatchRoleDTO dto)
+        public async Task<IActionResult> Patch(int id, PatchRoleDTO dto)
         {
-            var r = _context.Roles.FirstOrDefault(x => x.RoleId == id);
-            if (r is null) return NotFound();
-
-            if (dto.RoleName is not null) r.RoleName = dto.RoleName;
-            if (dto.Description is not null) r.Description = dto.Description;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.PatchAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var r = _context.Roles.FirstOrDefault(x => x.RoleId == id);
-            if (r is null) return NotFound();
-
-            _context.Roles.Remove(r);
-            _context.SaveChanges();
-            return NoContent();
+            var deleted = await _service.DeleteAsync(id);
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

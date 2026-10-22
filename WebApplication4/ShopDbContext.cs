@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +28,8 @@ public partial class ShopDbContext : DbContext
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
+
+    public virtual DbSet<StockReservation> StockReservations { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -152,6 +154,27 @@ public partial class ShopDbContext : DbContext
 
             entity.Property(e => e.Description).HasMaxLength(200);
             entity.Property(e => e.RoleName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<StockReservation>(entity =>
+        {
+            entity.HasKey(e => e.StockReservationId).HasName("PK_StockReservations");
+
+            entity.HasIndex(e => e.UserId, "IX_StockReservations_UserId");
+
+            entity.HasIndex(e => e.ProductId, "IX_StockReservations_ProductId");
+
+            entity.Property(e => e.ReservedAt).HasDefaultValueSql("(getdate())");
+
+            entity.Property(e => e.Quantity);
+
+            entity.HasOne(d => d.User).WithMany(p => p.StockReservations)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_StockReservations_Users");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.StockReservations)
+                .HasForeignKey(d => d.ProductId)
+                .HasConstraintName("FK_StockReservations_Products");
         });
 
         modelBuilder.Entity<User>(entity =>

@@ -1,7 +1,11 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 
 namespace WebApplication4.DTO
 {
+    /// <summary>
+    /// DTO чтения заказа — с вложенными позициями и данными пользователя (один-ко-многим).
+    /// </summary>
     public class OrderDTO
     {
         public int OrderId { get; set; }
@@ -11,5 +15,11 @@ namespace WebApplication4.DTO
         public string? Status { get; set; }
         public string ShippingAddress { get; set; } = null!;
         public string? PaymentMethod { get; set; }
+
+        /// <summary>Пользователь, оформивший заказ.</summary>
+        public UserDTO? User { get; set; }
+
+        /// <summary>Позиции заказа (один-ко-многим).</summary>
+        public List<OrderItemDTO> OrderItems { get; set; } = new();
     }
 }

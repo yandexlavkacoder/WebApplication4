@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication4.DTO;
+using WebApplication4.Services;
 
 namespace WebApplication4.Controllers
 {
@@ -7,108 +8,54 @@ namespace WebApplication4.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
-        private readonly ShopDbContext _context;
+        private readonly IOrderService _service;
 
-        public OrdersController(ShopDbContext context)
+        public OrdersController(IOrderService service)
         {
-            _context = context;
+            _service = service;
         }
 
-        private static OrderDTO ToDto(Order o) => new OrderDTO
-        {
-            OrderId = o.OrderId,
-            UserId = o.UserId,
-            OrderDate = o.OrderDate,
-            TotalAmount = o.TotalAmount,
-            Status = o.Status,
-            ShippingAddress = o.ShippingAddress,
-            PaymentMethod = o.PaymentMethod
-        };
-
         [HttpGet]
-        public IActionResult GetAll(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
         {
-            var items = _context.Orders
-                .OrderBy(o => o.OrderId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList()
-                .Select(ToDto)
-                .ToList();
-
-            return Ok(items);
+            var result = await _service.GetPagedAsync(page, pageSize);
+            Response.Headers["X-Total-Count"] = result.TotalCount.ToString();
+            return Ok(result.Items);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var o = _context.Orders.FirstOrDefault(x => x.OrderId == id);
-            if (o is null) return NotFound();
-            return Ok(ToDto(o));
+            var dto = await _service.GetByIdAsync(id);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpPost]
-        public IActionResult Create(CreateOrderDTO dto)
+        public async Task<IActionResult> Create(CreateOrderDTO dto)
         {
-            var o = new Order
-            {
-                UserId = dto.UserId,
-                TotalAmount = dto.TotalAmount,
-                Status = dto.Status,
-                ShippingAddress = dto.ShippingAddress,
-                PaymentMethod = dto.PaymentMethod,
-                OrderDate = DateTime.UtcNow
-            };
-
-            _context.Orders.Add(o);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetById), new { id = o.OrderId }, ToDto(o));
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.OrderId }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, UpdateOrderDTO dto)
+        public async Task<IActionResult> Update(int id, UpdateOrderDTO dto)
         {
-            var o = _context.Orders.FirstOrDefault(x => x.OrderId == id);
-            if (o is null) return NotFound();
-
-            o.UserId = dto.UserId;
-            o.OrderDate = dto.OrderDate;
-            o.TotalAmount = dto.TotalAmount;
-            o.Status = dto.Status;
-            o.ShippingAddress = dto.ShippingAddress;
-            o.PaymentMethod = dto.PaymentMethod;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.UpdateAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpPatch("{id}")]
-        public IActionResult Patch(int id, PatchOrderDTO dto)
+        public async Task<IActionResult> Patch(int id, PatchOrderDTO dto)
         {
-            var o = _context.Orders.FirstOrDefault(x => x.OrderId == id);
-            if (o is null) return NotFound();
-
-            if (dto.UserId is not null) o.UserId = dto.UserId.Value;
-            if (dto.OrderDate is not null) o.OrderDate = dto.OrderDate.Value;
-            if (dto.TotalAmount is not null) o.TotalAmount = dto.TotalAmount.Value;
-            if (dto.Status is not null) o.Status = dto.Status;
-            if (dto.ShippingAddress is not null) o.ShippingAddress = dto.ShippingAddress;
-            if (dto.PaymentMethod is not null) o.PaymentMethod = dto.PaymentMethod;
-
-            _context.SaveChanges();
-            return NoContent();
+            var updated = await _service.PatchAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var o = _context.Orders.FirstOrDefault(x => x.OrderId == id);
-            if (o is null) return NotFound();
-
-            _context.Orders.Remove(o);
-            _context.SaveChanges();
-            return NoContent();
+            var deleted = await _service.DeleteAsync(id);
+            return deleted ? NoContent() : NotFound();
         }
     }
 }
