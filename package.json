@@ -1,0 +1,11 @@
+{
+  "name": "webapplication4",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:cors-fail": "npm --prefix frontend run dev:cors-fail",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "postinstall": "npm --prefix frontend install"
+  }
+}
