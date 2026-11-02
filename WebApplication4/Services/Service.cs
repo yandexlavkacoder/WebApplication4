@@ -36,6 +36,7 @@ public abstract class Service<TEntity, TDto, TCreateDto, TUpdateDto, TPatchDto>
     public async Task<TDto> CreateAsync(TCreateDto dto, CancellationToken ct)
     {
         var entity = Mapper.Map<TEntity>(dto);
+        BeforeCreate(entity, dto);
         await ValidateAsync(entity, ct);
 
         await Repository.AddAsync(entity, ct);
@@ -80,4 +81,6 @@ public abstract class Service<TEntity, TDto, TCreateDto, TUpdateDto, TPatchDto>
     }
 
     protected virtual Task ValidateAsync(TEntity entity, CancellationToken ct) => Task.CompletedTask;
+
+    protected virtual void BeforeCreate(TEntity entity, TCreateDto dto) { }
 }

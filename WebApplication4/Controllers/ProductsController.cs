@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApplication4.Authorization;
 using WebApplication4.DTO;
 using WebApplication4.Services;
 
@@ -32,6 +34,7 @@ public class ProductsController : ControllerBase
         return Ok(dto);
     }
 
+    [Authorize(Policy = Policies.CanManageCatalog)]
     [HttpPost]
     public async Task<IActionResult> Create(CreateProductDTO dto, CancellationToken cancellationToken)
     {
@@ -46,6 +49,7 @@ public class ProductsController : ControllerBase
         }
     }
 
+    [Authorize(Policy = Policies.CanManageCatalog)]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdateProductDTO dto, CancellationToken cancellationToken)
     {
@@ -61,6 +65,7 @@ public class ProductsController : ControllerBase
         }
     }
 
+    [Authorize(Policy = Policies.CanManageCatalog)]
     [HttpPatch("{id}")]
     public async Task<IActionResult> Patch(int id, PatchProductDTO dto, CancellationToken cancellationToken)
     {
@@ -76,6 +81,7 @@ public class ProductsController : ControllerBase
         }
     }
 
+    [Authorize(Policy = Policies.CanManageCatalog)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {

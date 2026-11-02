@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApplication4.Authorization;
 using WebApplication4.DTO;
 using WebApplication4.Services;
 
@@ -32,6 +34,7 @@ public class RolesController : ControllerBase
         return Ok(dto);
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpPost]
     public async Task<IActionResult> Create(CreateRoleDTO dto, CancellationToken cancellationToken)
     {
@@ -46,6 +49,7 @@ public class RolesController : ControllerBase
         }
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdateRoleDTO dto, CancellationToken cancellationToken)
     {
@@ -61,6 +65,7 @@ public class RolesController : ControllerBase
         }
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpPatch("{id}")]
     public async Task<IActionResult> Patch(int id, PatchRoleDTO dto, CancellationToken cancellationToken)
     {
@@ -76,6 +81,7 @@ public class RolesController : ControllerBase
         }
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {

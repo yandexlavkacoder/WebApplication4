@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApplication4.Authorization;
 using WebApplication4.DTO;
 using WebApplication4.Services;
 
@@ -9,12 +11,15 @@ namespace WebApplication4.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _service;
+    private readonly IAuthorizationService _authorizationService;
 
-    public UsersController(IUserService service)
+    public UsersController(IUserService service, IAuthorizationService authorizationService)
     {
         _service = service;
+        _authorizationService = authorizationService;
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpGet]
     public async Task<IActionResult> GetAll(
         int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
@@ -24,14 +29,18 @@ public class UsersController : ControllerBase
         return Ok(items);
     }
 
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
     {
         var dto = await _service.GetByIdAsync(id, cancellationToken);
         if (dto is null) return NotFound();
+
+        if (!await IsOwnerOrAdminAsync(dto)) return Forbid();
         return Ok(dto);
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpPost]
     public async Task<IActionResult> Create(CreateUserDTO dto, CancellationToken cancellationToken)
     {
@@ -46,9 +55,18 @@ public class UsersController : ControllerBase
         }
     }
 
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdateUserDTO dto, CancellationToken cancellationToken)
     {
+        var existing = await _service.GetByIdAsync(id, cancellationToken);
+        if (existing is null) return NotFound();
+
+        if (!await IsOwnerOrAdminAsync(existing)) return Forbid();
+        if (!User.IsInRole(Roles.Admin) &&
+            (dto.RoleId != existing.Role.RoleId || dto.IsActive != existing.IsActive))
+            return Forbid();
+
         try
         {
             var updated = await _service.UpdateAsync(id, dto, cancellationToken);
@@ -61,9 +79,17 @@ public class UsersController : ControllerBase
         }
     }
 
+    [Authorize]
     [HttpPatch("{id}")]
     public async Task<IActionResult> Patch(int id, PatchUserDTO dto, CancellationToken cancellationToken)
     {
+        var existing = await _service.GetByIdAsync(id, cancellationToken);
+        if (existing is null) return NotFound();
+
+        if (!await IsOwnerOrAdminAsync(existing)) return Forbid();
+        if (!User.IsInRole(Roles.Admin) && (dto.RoleId is not null || dto.IsActive is not null))
+            return Forbid();
+
         try
         {
             var updated = await _service.PatchAsync(id, dto, cancellationToken);
@@ -76,6 +102,7 @@ public class UsersController : ControllerBase
         }
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
@@ -90,4 +117,7 @@ public class UsersController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    private async Task<bool> IsOwnerOrAdminAsync(UserDTO user) =>
+        (await _authorizationService.AuthorizeAsync(User, user, Policies.OwnerOrAdmin)).Succeeded;
 }

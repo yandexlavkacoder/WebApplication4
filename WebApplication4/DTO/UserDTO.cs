@@ -1,6 +1,8 @@
+using WebApplication4.Authorization;
+
 namespace WebApplication4.DTO;
 
-public class UserDTO
+public class UserDTO : IOwnedResource
 {
     public int UserId { get; set; }
     public string Username { get; set; } = "";
@@ -8,4 +10,6 @@ public class UserDTO
     public DateTime? CreatedAt { get; set; }
     public bool IsActive { get; set; }
     public RoleDTO Role { get; set; } = null!;
+
+    int IOwnedResource.OwnerUserId => UserId;
 }

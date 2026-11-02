@@ -1,20 +1,50 @@
-@host = http://localhost:5036
+@host = https://localhost:7218
 
+###
 GET {{host}}/api/products?page=1&pageSize=5
 
 ###
-
-POST {{host}}/api/stockreservations
+POST {{host}}/api/auth/register
 Content-Type: application/json
 
 {
-  "userId": 1,
-  "productId": 1,
+  "username": "new_user",
+  "email": "new_user@shop.test",
+  "password": "NewUser123"
+}
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "test_user1",
+  "password": "TestUser123"
+}
+
+###
+@token = вставьте_сюда_accessToken
+
+###
+GET {{host}}/api/users/1014
+Authorization: Bearer {{token}}
+
+###
+GET {{host}}/api/users/1014
+
+###
+POST {{host}}/api/stockreservations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "userId": 1014,
+  "productId": 3,
   "quantity": 2
 }
 
 ###
-
 POST {{host}}/api/stockreservations/1/release
+Authorization: Bearer {{token}}
 
 ###

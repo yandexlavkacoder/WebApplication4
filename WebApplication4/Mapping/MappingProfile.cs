@@ -7,6 +7,10 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
+        CreateMap<int?, int>().ConvertUsing((src, dest) => src ?? dest);
+        CreateMap<decimal?, decimal>().ConvertUsing((src, dest) => src ?? dest);
+        CreateMap<bool?, bool>().ConvertUsing((src, dest) => src ?? dest);
+
         CreateMap<Product, ProductDTO>()
             .ForMember(d => d.CategoryName, opt => opt.MapFrom(s => s.Category.CategoryName));
         CreateMap<Category, CategoryDTO>()
@@ -40,7 +44,8 @@ public class MappingProfile : Profile
         CreateMap<PatchOrderItemDTO, OrderItem>()
             .ForAllMembers(opt => opt.Condition((src, dest, value) => value != null));
 
-        CreateMap<CreateUserDTO, User>();
+        CreateMap<CreateUserDTO, User>()
+            .ForMember(d => d.PasswordHash, opt => opt.Ignore());
         CreateMap<UpdateUserDTO, User>();
         CreateMap<PatchUserDTO, User>()
             .ForAllMembers(opt => opt.Condition((src, dest, value) => value != null));
